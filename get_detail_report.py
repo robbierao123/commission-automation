@@ -7,6 +7,8 @@ import os
 import copy
 import chardet
 import textwrap
+from copy import deepcopy
+from pyhtml2pdf import converter
 
 
 #==============================================================================================================================================
@@ -19,14 +21,17 @@ html = """<style>
   min-width: 300px;
   font-family: 'Open Sans', sans-serif;
   border-collapse: collapse;
+  font-size: 0.5em;
+
   
 }
 .rwd-table tr {
-  border-top: 1px solid #ddd;
-  border-bottom: 1px solid #ddd;
+  border-top: 1px black;
+
 }
 .rwd-table th {
   display: none;
+  border: 1px solid black;
 }
 .rwd-table td {
   display: block;
@@ -75,7 +80,7 @@ h1 {
   background: white;
   color: black;
   border-radius: .4em;
-  overflow: hidden;
+
 }
 .rwd-table tr {
   border-color: black;
@@ -188,15 +193,15 @@ def get_sales_person_data(sales_name):
 
     for invoice in invoice_raw:
         if sales_name == invoice[3]:
-            invoice_sales_total += invoice[13]
-            invoice_cost_total += invoice[14]
-            marginal_profit += invoice[15]
+            invoice_sales_total += float(invoice[13])
+            invoice_cost_total += float(invoice[14])
+            marginal_profit += float(invoice[15])
     
     for creditnote in credit_note_data_raw:
         if sales_name == creditnote[3]:
-            credit_sales_total += creditnote[13]
-            credit_cost_total += creditnote[14]
-            marginal_profit -= creditnote[15]
+            credit_sales_total += float(creditnote[13])
+            credit_cost_total += float(creditnote[14])
+            marginal_profit -= float(creditnote[15])
     
     sales_total = invoice_sales_total - credit_sales_total
     sales_total = round(sales_total,2)
@@ -253,16 +258,16 @@ def get_sales_rows(sales_name):
     for invoice in invoice_raw:
         if sales_name == invoice[3]:
             sales_rows.append(invoice)
-            total_sales  += invoice[13]
-            total_cost  += invoice[14]
-            net_sales += invoice[15]
+            total_sales  += float(invoice[13])
+            total_cost  += float(invoice[14])
+            net_sales += float(invoice[15])
     
     for creditnote in credit_note_data_raw:
         if sales_name == creditnote[3]:
             sales_rows.append(creditnote)
-            total_sales  -= creditnote[13]
-            total_cost  -= creditnote[14]
-            net_sales -= creditnote[15]
+            total_sales  -= float(creditnote[13])
+            total_cost  -= float(creditnote[14])
+            net_sales -= float(creditnote[15])
 
     sales_rows.sort()
     last_row = ["#","","",sales_name,"","","","","","","","","",total_sales,total_cost,net_sales]
@@ -293,7 +298,11 @@ def convert_csv_html(csv_file, file_name):
     with open(file_name, "w") as file_to_write:
         file_to_write.write(html + file)
   
-   
+def convert_table_pdf(html_file, pdf_file):
+  
+  # path = os.path.abspath('update_invoice.html')
+  
+    converter.convert(f'file:///{html_file}', pdf_file)
 
 #===============================================================================================================================================================  
 # Main operation starts from here 
@@ -306,6 +315,8 @@ csvpath = 'CSV Reports'
 htmlpath = 'HTML Reports'
 # if not os.path.exists(pdfpath):
 #     os.mkdir('PDF Reports')
+if not os.path.exists(pdfpath):
+    os.mkdir(pdfpath)
 if not os.path.exists(csvpath):
     os.mkdir('CSV Reports')
 if not os.path.exists(htmlpath):
@@ -385,8 +396,14 @@ update_invoice_path = os.path.join(CURRENT_PATH,"./CSV Reports/update_invoice.cs
 update_invoice_html_path = os.path.join(CURRENT_PATH,"./HTML Reports/update_invoice.html")
 update_invoice_pdf_path = os.path.join(CURRENT_PATH,"./PDF Reports/update_invoice.pdf")
 
+update_invoice_abs_html_path = os.path.abspath('./HTML Reports/update_invoice.html')
+update_invoice_abs_pdf_path = os.path.abspath('./PDF Reports/update_invoice.pdf')
+
 make_csv_report(update_invoice_path, invoice_raw)
 convert_csv_html(update_invoice_path, update_invoice_html_path)
+
+convert_table_pdf(invoice_raw, update_invoice_pdf_path)
+convert_table_pdf(update_invoice_abs_html_path, update_invoice_abs_pdf_path)
 
 
 #===================================================================
@@ -444,8 +461,12 @@ credit_note_data_header.append("CN Net Sales")
 update_credit_note_path = os.path.join(CURRENT_PATH,"./CSV Reports/update_credit_note.csv")
 update_credit_note_html_path = os.path.join(CURRENT_PATH,"./HTML Reports/update_credit_note.html")
 
+update_credit_abs_html_path = os.path.abspath('./HTML Reports/update_credit_note.html')
+update_credit_abs_pdf_path = os.path.abspath('./PDF Reports/update_credit_note.pdf')
+
 make_csv_report(update_credit_note_path, credit_note_data_raw)
 convert_csv_html(update_credit_note_path, update_credit_note_html_path)
+convert_table_pdf(update_credit_abs_html_path,update_credit_abs_pdf_path )
 
 
 #================================================================================================================================================================
@@ -467,8 +488,12 @@ final_report_data.insert(0, final_report_header)
 final_commission_report_path = os.path.join(CURRENT_PATH,"./CSV Reports/final_commission_report.csv")
 final_commission_report_html_path = os.path.join(CURRENT_PATH,"./HTML Reports/final_commission_report.html")
 
+final_commission_report_abs_html_path = os.path.abspath('./HTML Reports/final_commission_report.html')
+final_commission_report_abs_pdf_path = os.path.abspath('./PDF Reports/final_commission_report.pdf')
+
 make_csv_report(final_commission_report_path, final_report_data)
 convert_csv_html(final_commission_report_path, final_commission_report_html_path)
+convert_table_pdf(final_commission_report_abs_html_path, final_commission_report_abs_pdf_path)
 #===========================================================
 #make verbose reports
 #===========================================================
@@ -480,8 +505,12 @@ verbose_report.insert(0, invoice_header)
 verbose_commission_report_path = os.path.join(CURRENT_PATH,"./CSV Reports/verbose_commission_report.csv")
 verbose_commission_report_html_path = os.path.join(CURRENT_PATH,"./HTML Reports/verbose_commission_report.html")
 
+verbose_commission_report_abs_html_path = os.path.abspath('./HTML Reports/verbose_commission_report.html')
+verbose_commission_report_abs_pdf_path = os.path.abspath('./PDF Reports/verbose_commission_report.pdf')
+
 make_csv_report(verbose_commission_report_path, verbose_report)
 convert_csv_html(verbose_commission_report_path, verbose_commission_report_html_path)
+convert_table_pdf(verbose_commission_report_abs_html_path, verbose_commission_report_abs_pdf_path)
 
 
 
@@ -494,19 +523,30 @@ for sales_name in sales_person_set:
     sales_verbose_data += sales_row
     csv_file_path = "./CSV Reports/" + sales_name + " commission_report.csv"
     csv_file_html_path = "./HTML Reports/" + sales_name + " commission_report.html"
+    pdf_file_path = "./PDF Reports/" + sales_name + " commission_report.pdf"
     sales_commission_path = os.path.join(CURRENT_PATH, csv_file_path)
     sales_commission_html_path = os.path.join(CURRENT_PATH, csv_file_html_path)
     sales_row.insert(0, invoice_header)
+
+    sales_commission_report_abs_html_path = os.path.abspath(csv_file_html_path)
+    sales_commission_report_abs_pdf_path = os.path.abspath(pdf_file_path)
+
     make_csv_report(sales_commission_path, sales_row)
     convert_csv_html(sales_commission_path, sales_commission_html_path)
+    convert_table_pdf(sales_commission_report_abs_html_path, sales_commission_report_abs_pdf_path)
 
 sales_verbose_commission_report_path = os.path.join(CURRENT_PATH,"./CSV Reports/sales_verbose_commission_report.csv")
 sales_verbose_commission_report_html_path = os.path.join(CURRENT_PATH,"./HTML Reports/sales_verbose_commission_report.html")
+
+
+sales_verbose_commission_report_abs_html_path = os.path.abspath("./HTML Reports/sales_verbose_commission_report.html")
+sales_verbose_commission_report_abs_pdf_path = os.path.abspath("./PDF Reports/sales_verbose_commission_report.pdf")
+
 sales_verbose_data.insert(0, invoice_header)
 
 make_csv_report(sales_verbose_commission_report_path, sales_verbose_data)
 convert_csv_html(sales_verbose_commission_report_path, sales_verbose_commission_report_html_path)
-
+convert_table_pdf(sales_verbose_commission_report_abs_html_path, sales_verbose_commission_report_abs_pdf_path)
 
 
 #==========================================================================================================
